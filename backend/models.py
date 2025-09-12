@@ -29,12 +29,13 @@ class User(Base):
     """User accounts - can be hosts, renters, or admins"""
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True)
+    id = Column(String(255), primary_key=True)  # Google user ID
     email = Column(String(255), unique=True, nullable=False)
-    username = Column(String(100), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=True)  # For email/password auth
-    oauth_provider = Column(String(50), nullable=True)  # google, github, etc
-    oauth_id = Column(String(255), nullable=True)
+    username = Column(String(100), nullable=False)  # Display name from Google
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
+    profile_image_url = Column(String(500), nullable=True)
+    oauth_provider = Column(String(50), nullable=False, default="google")  # google, github, etc
     role = Column(Enum(UserRole), nullable=False, default=UserRole.RENTER)
     stripe_customer_id = Column(String(255), nullable=True)  # For payments
     stripe_account_id = Column(String(255), nullable=True)  # For hosts (Connect)
@@ -53,7 +54,7 @@ class Host(Base):
     
     id = Column(Integer, primary_key=True)
     host_id = Column(String(100), unique=True, nullable=False)  # Unique device ID
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner_id = Column(String(255), ForeignKey("users.id"), nullable=False)
     
     # GPU specifications
     gpu_model = Column(String(100), nullable=False)  # RTX 4090, A100, etc
@@ -94,7 +95,7 @@ class Job(Base):
     
     id = Column(Integer, primary_key=True)
     job_id = Column(String(100), unique=True, nullable=False)
-    renter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    renter_id = Column(String(255), ForeignKey("users.id"), nullable=False)
     host_id = Column(Integer, ForeignKey("hosts.id"), nullable=True)
     
     # Job specification
@@ -142,7 +143,7 @@ class PublicModel(Base):
     
     id = Column(Integer, primary_key=True)
     model_id = Column(String(100), unique=True, nullable=False)
-    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    author_id = Column(String(255), ForeignKey("users.id"), nullable=False)
     job_id = Column(Integer, ForeignKey("jobs.id"), nullable=True)  # Source job
     
     # Model metadata

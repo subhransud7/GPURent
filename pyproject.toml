@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "authlib>=1.6.3",
     "boto3>=1.40.30",
     "click>=8.2.1",
     "docker>=7.1.0",

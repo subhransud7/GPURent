@@ -27,12 +27,13 @@ from redis_queue import get_job_queue, JobQueueStatus
 # Authentication imports
 from auth import (
     get_current_user, get_current_active_user, require_host_role, require_admin_role,
-    create_access_token, get_password_hash, verify_password, authenticate_websocket_token
+    authenticate_websocket_token
 )
+from google_auth import google_oauth, create_access_token, verify_token, create_or_update_user
 
 # Schema imports
 from schemas import (
-    UserRegister, UserLogin, Token, UserResponse,
+    UserRegister, GoogleAuthCallback, Token, UserResponse,
     HostRegister, HostUpdate, HostResponse,
     JobSubmit, JobUpdate, JobResponse,
     HostHeartbeat, JobProgress, ErrorResponse, HealthResponse
@@ -116,12 +117,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# Configure CORS for security
+FRONTEND_URL = os.environ.get("REPLIT_DEV_DOMAIN")
+if FRONTEND_URL:
+    allowed_origins = [f"https://{FRONTEND_URL}"]
+else:
+    # Development fallback
+    allowed_origins = ["http://localhost:5000", "http://localhost:3000", "http://localhost:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -157,76 +165,38 @@ async def health_check(db: Session = Depends(get_db)):
     )
 
 # Authentication routes
-@app.post("/api/auth/register", response_model=UserResponse)
-async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
-    """Register a new user (host or renter)"""
+# Note: User registration now happens automatically via Google OAuth
+
+@app.get("/api/auth/google")
+async def google_login():
+    """Initiate Google OAuth login"""
     try:
-        # Check if user already exists
-        existing_user = db.query(User).filter(
-            (User.email == user_data.email) | (User.username == user_data.username)
-        ).first()
-        
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User with this email or username already exists"
-            )
-        
-        # Hash password
-        hashed_password = get_password_hash(user_data.password)
-        
-        # Create new user
-        new_user = User(
-            email=user_data.email,
-            username=user_data.username,
-            password_hash=hashed_password,
-            role=user_data.role
-        )
-        
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        
-        logger.info(f"New user registered: {new_user.email} ({new_user.role.value})")
-        return new_user
-        
-    except HTTPException:
-        raise
+        authorization_url = google_oauth.get_authorization_url()
+        return {"authorization_url": authorization_url}
     except Exception as e:
-        logger.error(f"User registration error: {e}")
-        db.rollback()
+        logger.error(f"Google OAuth initiation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Registration failed"
+            detail="Failed to initiate Google authentication"
         )
 
-@app.post("/api/auth/login")
-async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate user and return JWT token with user data"""
+@app.post("/api/auth/google/callback")
+async def google_callback(callback_data: GoogleAuthCallback, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback and return JWT token with user data"""
     try:
-        # Find user by email
-        user = db.query(User).filter(User.email == credentials.email).first()
+        # Get user info from Google
+        user_info = google_oauth.get_user_info(callback_data.code)
         
-        if not user or not verify_password(credentials.password, user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Inactive user account"
-            )
+        # Create or update user in database
+        user = create_or_update_user(user_info, db)
         
         # Create access token
         access_token_expires = timedelta(minutes=30)
         access_token = create_access_token(
-            data={"sub": str(user.id)}, expires_delta=access_token_expires
+            data={"sub": user.id}, expires_delta=access_token_expires
         )
         
-        logger.info(f"User logged in: {user.email}")
+        logger.info(f"User logged in via Google: {user.email}")
         return {
             "access_token": access_token, 
             "token_type": "bearer",
@@ -234,7 +204,11 @@ async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
                 "id": user.id,
                 "email": user.email,
                 "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "profile_image_url": user.profile_image_url,
                 "role": user.role.value,
+                "oauth_provider": user.oauth_provider,
                 "is_active": user.is_active,
                 "created_at": user.created_at.isoformat() if user.created_at else None
             }
@@ -243,10 +217,10 @@ async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Login error: {e}")
+        logger.error(f"Google OAuth callback error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login failed"
+            detail="Google authentication failed"
         )
 
 @app.get("/api/auth/me", response_model=UserResponse)

@@ -35,39 +35,39 @@ export const AuthProvider = ({ children }) => {
     initAuth()
   }, [token])
 
-  const login = async (email, password) => {
+  const loginWithGoogle = async () => {
     try {
-      const response = await axios.post('/api/auth/login', {
-        email,
-        password
-      })
+      // Get Google OAuth URL
+      const response = await axios.get('/api/auth/google')
+      const { authorization_url } = response.data
       
-      const { access_token, user } = response.data
-      localStorage.setItem('token', access_token)
-      setToken(access_token)
-      setUser(user)
+      // Redirect to Google OAuth
+      window.location.href = authorization_url
       
       return { success: true }
     } catch (error) {
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+        error: error.response?.data?.detail || 'Google login failed' 
       }
     }
   }
 
-  const register = async (userData) => {
+  const handleGoogleCallback = async (code) => {
     try {
-      const response = await axios.post('/api/auth/register', userData)
+      const response = await axios.post('/api/auth/google/callback', { code })
+      const { access_token, user } = response.data
       
-      // Auto-login after registration
-      const loginResult = await login(userData.email, userData.password)
+      // Store token and user info
+      localStorage.setItem('token', access_token)
+      setToken(access_token)
+      setUser(user)
       
-      return loginResult
+      return { success: true, user }
     } catch (error) {
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Registration failed' 
+        error: error.response?.data?.detail || 'Google authentication failed' 
       }
     }
   }
@@ -80,8 +80,8 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    login,
-    register,
+    loginWithGoogle,
+    handleGoogleCallback,
     logout,
     loading,
     isAuthenticated: !!user,

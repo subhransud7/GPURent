@@ -9,31 +9,18 @@ from models import UserRole, JobStatus
 
 # Authentication schemas
 class UserRegister(BaseModel):
-    email: EmailStr
-    username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8, max_length=128)
     role: UserRole = UserRole.RENTER
-    
-    @validator('password')
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
-        if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        return v
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+class GoogleAuthCallback(BaseModel):
+    code: str
+    state: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
 class TokenData(BaseModel):
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None
 
 # User schemas
 class UserBase(BaseModel):
@@ -41,11 +28,14 @@ class UserBase(BaseModel):
     username: str
     role: UserRole
 
-class UserCreate(UserBase):
-    password: str
+# UserCreate removed - using Google OAuth only
 
 class UserResponse(UserBase):
-    id: int
+    id: str  # String ID for Google OAuth compatibility
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    oauth_provider: str = "google"
     is_active: bool
     created_at: datetime
     
@@ -80,7 +70,7 @@ class HostUpdate(BaseModel):
 class HostResponse(BaseModel):
     id: int
     host_id: str
-    owner_id: int
+    owner_id: str
     gpu_model: str
     gpu_memory: str
     gpu_count: int
@@ -124,7 +114,7 @@ class JobUpdate(BaseModel):
 class JobResponse(BaseModel):
     id: int
     job_id: str
-    renter_id: int
+    renter_id: str
     host_id: Optional[int]
     title: str
     description: Optional[str]

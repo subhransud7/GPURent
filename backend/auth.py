@@ -6,31 +6,24 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+# Removed passlib import - using Google OAuth only
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User, UserRole
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing - REMOVED for Google OAuth only authentication
 
-# JWT configuration
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+# JWT configuration - use the same key as google_auth for consistency  
+from google_auth import SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Security
 security = HTTPBearer()
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
+# Password functions REMOVED - using Google OAuth only
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create a JWT access token"""
@@ -48,7 +41,7 @@ def verify_token(token: str) -> dict:
     """Verify and decode a JWT token"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
+        user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,7 +62,7 @@ def get_current_user(
 ) -> User:
     """Get current authenticated user from JWT token"""
     payload = verify_token(credentials.credentials)
-    user_id: int = payload.get("sub")
+    user_id: str = payload.get("sub")  # String ID for Google OAuth compatibility
     
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
@@ -125,7 +118,7 @@ def authenticate_websocket_token(token: str, db: Session) -> User:
     """Authenticate a WebSocket connection using JWT token"""
     try:
         payload = verify_token(token)
-        user_id: int = payload.get("sub")
+        user_id: str = payload.get("sub")
         
         user = db.query(User).filter(User.id == user_id).first()
         if user is None or not user.is_active:
