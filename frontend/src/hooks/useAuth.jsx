@@ -23,7 +23,8 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         try {
           const response = await axios.get('/api/auth/me')
-          setUser(response.data.user)
+          // Handle both response formats: direct user object or nested user object
+          setUser(response.data.user || response.data)
         } catch (error) {
           localStorage.removeItem('token')
           setToken(null)

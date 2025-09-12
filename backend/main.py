@@ -200,9 +200,9 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
             detail="Registration failed"
         )
 
-@app.post("/api/auth/login", response_model=Token)
+@app.post("/api/auth/login")
 async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate user and return JWT token"""
+    """Authenticate user and return JWT token with user data"""
     try:
         # Find user by email
         user = db.query(User).filter(User.email == credentials.email).first()
@@ -227,7 +227,18 @@ async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
         )
         
         logger.info(f"User logged in: {user.email}")
-        return {"access_token": access_token, "token_type": "bearer"}
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role.value,
+                "is_active": user.is_active,
+                "created_at": user.created_at.isoformat() if user.created_at else None
+            }
+        }
         
     except HTTPException:
         raise
@@ -242,6 +253,12 @@ async def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information"""
     return current_user
+
+@app.get("/api")
+@app.head("/api")
+async def api_root():
+    """API root endpoint - supports HEAD for proxy health checks"""
+    return {"message": "P2P GPU Cloud Platform API", "version": "1.0.0", "status": "online"}
 
 # Host management routes
 @app.post("/api/hosts/register", response_model=HostResponse)
