@@ -21,6 +21,9 @@ import os
 from database import get_db, init_db, check_db_connection
 from models import User, Host, Job, PublicModel, UserRole, JobStatus
 
+# Redis job queue imports
+from redis_queue import get_job_queue, JobQueueStatus
+
 # Authentication imports
 from auth import (
     get_current_user, get_current_active_user, require_host_role, require_admin_role,
@@ -647,7 +650,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=5000,
+        port=8000,
         reload=True,
         log_level="info"
     )
