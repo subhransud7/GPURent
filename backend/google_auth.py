@@ -5,8 +5,9 @@ Based on Replit Auth integration principles adapted for FastAPI
 
 import os
 import requests
-from jose import jwt
+from jose import jwt, JWTError
 from datetime import datetime, timedelta
+from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models import User, UserRole
@@ -189,7 +190,7 @@ https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oa
                 detail=f"Invalid OAuth state - potential CSRF attack: {str(e)}"
             )
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create a JWT access token"""
     to_encode = data.copy()
     if expires_delta:
@@ -205,14 +206,14 @@ def verify_token(token: str):
     """Verify and decode JWT token"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
+        user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token"
             )
         return user_id
-    except jwt.JWTError:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token"
@@ -236,9 +237,9 @@ def create_or_update_user(user_info: dict, db: Session, role: UserRole = UserRol
         # Update existing user info
         user.email = email
         user.username = user_info.get("name", email.split("@")[0])
-        user.first_name = user_info.get("given_name")
-        user.last_name = user_info.get("family_name")
-        user.profile_image_url = user_info.get("picture")
+        user.first_name = user_info.get("given_name") or user.first_name
+        user.last_name = user_info.get("family_name") or user.last_name
+        user.profile_image_url = user_info.get("picture") or user.profile_image_url
         user.updated_at = datetime.utcnow()
     else:
         # Create new user
