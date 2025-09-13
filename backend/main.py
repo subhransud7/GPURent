@@ -136,10 +136,10 @@ app.add_middleware(
 
 # Static file mounting will be done after all API routes are defined
 
-# Root health check endpoint for deployment health checks
-@app.get("/")
-@app.head("/")
-async def root_health_check():
+# Health check endpoint moved to /health-check to free up root for frontend
+@app.get("/health-check")
+@app.head("/health-check")
+async def deployment_health_check():
     """Simple health check endpoint for deployment monitoring"""
     return {"status": "healthy", "service": "P2P GPU Cloud Platform API"}
 
@@ -686,9 +686,24 @@ from fastapi.responses import FileResponse
 
 frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.exists(frontend_dist_path):
-    # Mount entire frontend dist directory at /app/ (after all API routes)
-    app.mount("/app", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
-    logger.info(f"✅ Mounted frontend static files from {frontend_dist_path} at /app/")
+    # Mount static assets (CSS, JS, etc.) at root
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+    
+    # Catch-all route to serve index.html for SPA routing (must be last)
+    @app.get("/{path:path}")
+    async def serve_frontend(path: str = ""):
+        """Serve frontend index.html for all non-API routes"""
+        # Don't intercept API routes
+        if path.startswith("api/") or path.startswith("ws/") or path == "health-check" or path == "health":
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        index_path = os.path.join(frontend_dist_path, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not found")
+    
+    logger.info(f"✅ Mounted frontend static files from {frontend_dist_path} at root with SPA routing")
 else:
     logger.info("ℹ️ Frontend dist directory not found, running in development mode")
 
