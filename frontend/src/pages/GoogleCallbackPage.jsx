@@ -10,6 +10,7 @@ export default function GoogleCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       const code = searchParams.get('code')
+      const state = searchParams.get('state')
       const error = searchParams.get('error')
 
       if (error) {
@@ -20,7 +21,7 @@ export default function GoogleCallbackPage() {
 
       if (code) {
         try {
-          const result = await handleGoogleCallback(code)
+          const result = await handleGoogleCallback(code, state)
           if (result.success) {
             navigate('/dashboard')
           } else {
