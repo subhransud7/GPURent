@@ -1,0 +1,156 @@
+025-09-14 01:17:41.58
+cfc60822
+User
+INFO:main:✅ Mounted frontend static files from /home/runner/workspace/frontend/dist at root with SPA routing
+2025-09-14 01:17:41.58
+cfc60822
+User
+INFO: Started server process [33]
+2025-09-14 01:17:41.58
+cfc60822
+User
+INFO: Waiting for application startup.
+2025-09-14 01:17:41.58
+cfc60822
+User
+INFO:main:🚀 GPU Cloud Platform starting up...
+2025-09-14 01:17:41.58
+cfc60822
+User
+INFO: Application startup complete.
+2025-09-14 01:17:41.63
+cfc60822
+User
+INFO:watchfiles.main:3 changes detected
+2025-09-14 01:32:51.07
+7e84e635
+System
+starting up user application
+2025-09-14 01:32:56.08
+7e84e635
+System
+failed to get available secrets for proxy error=error making request: Get "https://deployer.replit.com/pubkeys/v1/repl-auth-public-key": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025-09-14 01:32:56.08
+7e84e635
+System
+retry request: failed. sleeping for 269.849769ms attempt=1 error=error making request: Get "https://deployer.replit.com/pubkeys/v1/repl-auth-public-key": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+2025-09-14 01:32:56.37
+7e84e635
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-09-14 01:33:03.22
+7e84e635
+User
+❌ Redis connection failed: Error 111 connecting to localhost:6379. Connection refused.
+2025-09-14 01:33:03.22
+7e84e635
+User
+❌ Local Redis connection also failed: Error 111 connecting to localhost:6379. Connection refused.
+2025-09-14 01:33:04.63
+7e84e635
+User
+INFO: Started server process [26]
+2025-09-14 01:33:04.63
+7e84e635
+User
+INFO: Waiting for application startup.
+2025-09-14 01:33:04.63
+7e84e635
+User
+INFO:main:🚀 GPU Cloud Platform starting up...
+2025-09-14 01:33:05.29
+7e84e635
+User
+INFO: Application startup complete.
+2025-09-14 01:33:05.29
+7e84e635
+User
+INFO: Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2025-09-14 01:33:56.37
+7e84e635
+System
+a port configuration was specified but the required port was never opened
+2025-09-14 01:36:54.25
+e1e01c28
+System
+starting up user application
+2025-09-14 01:36:54.54
+e1e01c28
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-09-14 01:36:56.10
+e1e01c28
+User
+Usage: uvicorn [OPTIONS] APP
+2025-09-14 01:36:56.10
+e1e01c28
+User
+Try 'uvicorn --help' for help.
+2025-09-14 01:36:56.10
+e1e01c28
+User
+Error: No such option: --no-reload (Possible options: --reload, --reload-delay, --reload-dir)
+2025-09-14 01:36:56.13
+e1e01c28
+System
+command finished with error [bash -c cd backend && uvicorn main:app --host 0.0.0.0 --port 5000 --no-reload --log-level info]: exit status 2
+2025-09-14 01:36:56.38
+e1e01c28
+User
+Usage: uvicorn [OPTIONS] APP
+2025-09-14 01:36:56.38
+e1e01c28
+User
+Try 'uvicorn --help' for help.
+2025-09-14 01:36:56.38
+e1e01c28
+User
+Error: No such option: --no-reload (Possible options: --reload, --reload-delay, --reload-dir)
+2025-09-14 01:36:56.42
+e1e01c28
+System
+command finished with error [bash -c cd backend && uvicorn main:app --host 0.0.0.0 --port 5000 --no-reload --log-level info]: exit status 2
+2025-09-14 01:36:56.70
+e1e01c28
+User
+Usage: uvicorn [OPTIONS] APP
+2025-09-14 01:36:56.70
+e1e01c28
+User
+Try 'uvicorn --help' for help.
+2025-09-14 01:36:56.70
+e1e01c28
+User
+Error: No such option: --no-reload (Possible options: --reload, --reload-delay, --reload-dir)
+2025-09-14 01:36:56.73
+e1e01c28
+System
+command finished with error [bash -c cd backend && uvicorn main:app --host 0.0.0.0 --port 5000 --no-reload --log-level info]: exit status 2
+2025-09-14 01:36:57.03
+e1e01c28
+User
+Usage: uvicorn [OPTIONS] APP
+2025-09-14 01:36:57.03
+e1e01c28
+User
+Try 'uvicorn --help' for help.
+2025-09-14 01:36:57.03
+e1e01c28
+User
+Error: No such option: --no-reload (Possible options: --reload, --reload-delay, --reload-dir)
+2025-09-14 01:36:57.06
+e1e01c28
+System
+command finished with error [bash -c cd backend && uvicorn main:app --host 0.0.0.0 --port 5000 --no-reload --log-level info]: exit status 2
+2025-09-14 01:36:57.43
+e1e01c28
+User
+Usage: uvicorn [OPTIONS] APP
+2025-09-14 01:36:57.43
+e1e01c28
+User
+Try 'uvicorn --help' for help.
+2025-09-14 01:36:57.43
+e1e01c28
+User
+Error: No such option: --no-reload (Possible options: --reload, --reload-delay, --reload-dir)

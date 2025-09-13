@@ -153,12 +153,6 @@ def root_health_check():
     """Health check endpoint for deployment monitoring"""
     return {"status": "ok", "message": "Service is healthy"}
     
-# Additional health check endpoint
-@app.get("/health-check")
-@app.head("/health-check")
-async def deployment_health_check():
-    """Alternative health check endpoint"""
-    return {"status": "healthy", "service": "P2P GPU Cloud Platform API"}
 
 # API info endpoint is defined later with both GET and HEAD support
 
