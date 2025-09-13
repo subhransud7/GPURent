@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import {
-  CpuChipIcon,
   UserIcon,
   ArrowRightOnRectangleIcon,
   Cog8ToothIcon,
 } from "@heroicons/react/24/outline";
+import openTensrLogo from "../assets/opentensr-logo.png";
 
 export default function Navbar() {
   const { user, activeRole, switchRole, logout, isAuthenticated } = useAuth();
@@ -35,9 +35,12 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <CpuChipIcon className="h-8 w-8 text-blue-600" />
-              <span className="font-bold text-xl text-gray-900">OpenTensr</span>
+            <Link to="/" className="flex items-center">
+              <img 
+                src={openTensrLogo} 
+                alt="OpenTensr" 
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
