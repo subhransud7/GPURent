@@ -30,6 +30,15 @@ class UserBase(BaseModel):
 
 # UserCreate removed - using Google OAuth only
 
+class ActiveRoleUpdate(BaseModel):
+    active_role: UserRole
+    
+    @validator('active_role')
+    def validate_active_role(cls, v):
+        if v == UserRole.ADMIN:
+            raise ValueError('Cannot switch to admin role')
+        return v
+
 class UserResponse(UserBase):
     id: str  # String ID for Google OAuth compatibility
     first_name: Optional[str] = None
@@ -38,6 +47,11 @@ class UserResponse(UserBase):
     oauth_provider: str = "google"
     is_active: bool
     created_at: datetime
+    
+    # Role switching fields
+    is_renter: bool = True
+    is_host: bool = False
+    active_role: UserRole = UserRole.RENTER
     
     class Config:
         from_attributes = True

@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
+  const [activeRole, setActiveRole] = useState(localStorage.getItem('activeRole') || 'renter')
 
   // Set up axios defaults
   useEffect(() => {
@@ -24,10 +25,19 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await axios.get('/api/auth/me')
           // Handle both response formats: direct user object or nested user object
-          setUser(response.data.user || response.data)
+          const userData = response.data.user || response.data
+          setUser(userData)
+          
+          // Sync active role with server data
+          if (userData.active_role) {
+            setActiveRole(userData.active_role)
+            localStorage.setItem('activeRole', userData.active_role)
+          }
         } catch (error) {
           localStorage.removeItem('token')
+          localStorage.removeItem('activeRole')
           setToken(null)
+          setActiveRole('renter')
         }
       }
       setLoading(false)
@@ -76,16 +86,44 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const switchRole = async (newRole) => {
+    if (!user || !token) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    try {
+      const response = await axios.patch('/api/auth/me/active-role', {
+        active_role: newRole
+      })
+      
+      const updatedUser = response.data
+      setUser(updatedUser)
+      setActiveRole(newRole)
+      localStorage.setItem('activeRole', newRole)
+      
+      return { success: true, user: updatedUser }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'Failed to switch role' 
+      }
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('activeRole')
     setToken(null)
     setUser(null)
+    setActiveRole('renter')
   }
 
   const value = {
     user,
+    activeRole,
     loginWithGoogle,
     handleGoogleCallback,
+    switchRole,
     logout,
     loading,
     isAuthenticated: !!user,

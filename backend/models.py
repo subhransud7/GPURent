@@ -37,7 +37,13 @@ class User(Base):
     profile_image_url = Column(String(500), nullable=True)
     google_id = Column(String(255), unique=True, nullable=True)  # Google user ID
     oauth_provider = Column(String(50), nullable=False, default="google")  # google, github, etc
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.RENTER)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.RENTER)  # Keep for admin/RBAC
+    
+    # Role switching capabilities
+    is_renter = Column(Boolean, default=True)  # Can submit jobs
+    is_host = Column(Boolean, default=False)  # Can provide GPU resources
+    active_role = Column(Enum(UserRole), nullable=False, default=UserRole.RENTER)  # Current UI mode
+    
     stripe_customer_id = Column(String(255), nullable=True)  # For payments
     stripe_account_id = Column(String(255), nullable=True)  # For hosts (Connect)
     created_at = Column(DateTime, default=datetime.utcnow)

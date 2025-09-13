@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { 
@@ -9,12 +9,24 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Navbar() {
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, activeRole, switchRole, logout, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const [roleLoading, setRoleLoading] = useState(false)
 
   const handleLogout = () => {
     logout()
     navigate('/')
+  }
+
+  const handleRoleSwitch = async (newRole) => {
+    setRoleLoading(true)
+    const result = await switchRole(newRole)
+    setRoleLoading(false)
+    
+    if (!result.success) {
+      // You could add a toast notification here
+      console.error('Failed to switch role:', result.error)
+    }
   }
 
   return (
@@ -56,17 +68,38 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
+                {/* Role Toggle */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => handleRoleSwitch('renter')}
+                      disabled={roleLoading}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                        activeRole === 'renter'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-blue-600'
+                      }`}
+                    >
+                      Renter
+                    </button>
+                    <button
+                      onClick={() => handleRoleSwitch('host')}
+                      disabled={roleLoading}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                        activeRole === 'host'
+                          ? 'bg-green-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-green-600'
+                      }`}
+                    >
+                      Host
+                    </button>
+                  </div>
+                </div>
+                
                 <div className="flex items-center space-x-2">
                   <UserIcon className="h-5 w-5 text-gray-400" />
                   <span className="text-sm text-gray-700">
                     {user?.username || user?.email}
-                  </span>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    user?.role === 'host' ? 'bg-green-100 text-green-800' :
-                    user?.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {user?.role}
                   </span>
                 </div>
                 <button

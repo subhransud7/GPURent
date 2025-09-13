@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function DashboardPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, activeRole, isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [jobs, setJobs] = useState([])
   const [hosts, setHosts] = useState([])
@@ -26,14 +26,17 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch user's jobs and hosts
-        const [jobsRes, hostsRes] = await Promise.all([
-          axios.get('/api/jobs/my-jobs').catch(() => ({ data: { jobs: [] } })),
-          axios.get('/api/hosts').catch(() => ({ data: { hosts: [] } }))
-        ])
-        
-        setJobs(jobsRes.data.jobs || [])
-        setHosts(hostsRes.data.hosts || [])
+        if (activeRole === 'renter') {
+          // Fetch jobs for renters
+          const jobsRes = await axios.get('/api/jobs/my-jobs').catch(() => ({ data: { jobs: [] } }))
+          setJobs(jobsRes.data.jobs || [])
+          setHosts([]) // Clear hosts data
+        } else if (activeRole === 'host') {
+          // Fetch user's own hosts for host view
+          const hostsRes = await axios.get('/api/hosts/my').catch(() => ({ data: [] }))
+          setHosts(hostsRes.data || [])
+          setJobs([]) // Clear jobs data
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
       } finally {
@@ -41,8 +44,10 @@ export default function DashboardPage() {
       }
     }
 
-    fetchData()
-  }, [])
+    if (activeRole) {
+      fetchData()
+    }
+  }, [activeRole])
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -81,7 +86,7 @@ export default function DashboardPage() {
             Welcome back, {user?.username}!
           </h1>
           <p className="mt-2 text-gray-600">
-            {user?.role === 'host' ? 'Manage your GPU hosts and earnings' : 'Manage your GPU jobs and compute usage'}
+            {activeRole === 'host' ? 'Manage your GPU hosts and earnings' : 'Manage your GPU jobs and compute usage'}
           </p>
         </div>
 
@@ -98,17 +103,19 @@ export default function DashboardPage() {
             >
               Overview
             </button>
-            <button
-              onClick={() => setActiveTab('jobs')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'jobs'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              My Jobs
-            </button>
-            {user?.role === 'host' && (
+            {activeRole === 'renter' && (
+              <button
+                onClick={() => setActiveTab('jobs')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'jobs'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                My Jobs
+              </button>
+            )}
+            {activeRole === 'host' && (
               <button
                 onClick={() => setActiveTab('hosts')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -126,59 +133,119 @@ export default function DashboardPage() {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <PlayIcon className="h-6 w-6 text-blue-600" />
+            {activeRole === 'renter' ? (
+              <>
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <PlayIcon className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Running Jobs</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {jobs.filter(job => job.status === 'running').length}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Running Jobs</p>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {jobs.filter(job => job.status === 'running').length}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Completed Jobs</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {jobs.filter(job => job.status === 'completed').length}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Completed</p>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {jobs.filter(job => job.status === 'completed').length}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <ClockIcon className="h-6 w-6 text-yellow-600" />
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <ClockIcon className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Pending Jobs</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {jobs.filter(job => job.status === 'pending').length}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Pending</p>
-                  <p className="text-2xl font-semibold text-gray-900">
-                    {jobs.filter(job => job.status === 'pending').length}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <CpuChipIcon className="h-6 w-6 text-purple-600" />
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <CpuChipIcon className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Total Jobs</p>
+                      <p className="text-2xl font-semibold text-gray-900">{jobs.length}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Available GPUs</p>
-                  <p className="text-2xl font-semibold text-gray-900">{hosts.length}</p>
+              </>
+            ) : (
+              <>
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CpuChipIcon className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">My Hosts</p>
+                      <p className="text-2xl font-semibold text-gray-900">{hosts.length}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <PlayIcon className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Online Hosts</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {hosts.filter(host => host.is_online).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <CheckCircleIcon className="h-6 w-6 text-yellow-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Jobs Completed</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        {hosts.reduce((sum, host) => sum + (host.total_jobs_completed || 0), 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <CpuChipIcon className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-500">Total Earnings</p>
+                      <p className="text-2xl font-semibold text-gray-900">
+                        ${hosts.reduce((sum, host) => sum + (host.total_earnings || 0), 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 

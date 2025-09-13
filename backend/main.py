@@ -33,7 +33,7 @@ from google_auth import google_oauth, create_access_token, verify_token, create_
 
 # Schema imports
 from schemas import (
-    UserRegister, Token, UserResponse,
+    UserRegister, Token, UserResponse, ActiveRoleUpdate,
     HostRegister, HostUpdate, HostResponse,
     JobSubmit, JobUpdate, JobResponse,
     HostHeartbeat, JobProgress, ErrorResponse, HealthResponse
@@ -129,7 +129,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -214,7 +214,10 @@ async def google_callback(
                 "role": user.role.value,
                 "oauth_provider": user.oauth_provider,
                 "is_active": user.is_active,
-                "created_at": user.created_at.isoformat() if user.created_at else None
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+                "is_renter": user.is_renter,
+                "is_host": user.is_host,
+                "active_role": user.active_role.value
             }
         }
         
@@ -231,6 +234,40 @@ async def google_callback(
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information"""
     return current_user
+
+@app.patch("/api/auth/me/active-role", response_model=UserResponse)
+async def update_active_role(
+    role_update: ActiveRoleUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update user's active role (switch between renter and host)"""
+    try:
+        # Validate that user can switch to the requested role
+        if role_update.active_role == UserRole.HOST and not current_user.is_host:
+            # Don't auto-enable host capability - user must complete host onboarding first
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You must register as a host before switching to host mode. Please add a GPU host device first."
+            )
+        
+        # Update the active role
+        current_user.active_role = role_update.active_role
+        current_user.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(current_user)
+        
+        logger.info(f"User {current_user.email} switched to {role_update.active_role.value} role")
+        return current_user
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating active role: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update active role"
+        )
 
 @app.get("/api")
 @app.head("/api")
@@ -316,10 +353,10 @@ async def list_hosts(db: Session = Depends(get_db)):
 
 @app.get("/api/hosts/my", response_model=List[HostResponse])
 async def list_my_hosts(
-    current_user: User = Depends(require_host_role),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get current user's hosts"""
+    """Get current user's hosts (any user can check their own hosts)"""
     try:
         hosts = db.query(Host).filter(Host.owner_id == current_user.id).all()
         
