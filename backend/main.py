@@ -29,7 +29,7 @@ from auth import (
     get_current_user, get_current_active_user, require_host_role, require_admin_role,
     authenticate_websocket_token
 )
-from google_auth import google_oauth, create_access_token, verify_token, create_or_update_user
+from google_auth import google_oauth, create_access_token, create_or_update_user
 
 # Schema imports
 from schemas import (
