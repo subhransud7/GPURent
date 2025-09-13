@@ -22,6 +22,19 @@ import os
 from database import get_db, init_db, check_db_connection
 from models import User, Host, Job, PublicModel, UserRole, JobStatus
 
+_db_initialized = False
+
+def ensure_db_initialized():
+    """Initialize database lazily on first use"""
+    global _db_initialized
+    if not _db_initialized:
+        if check_db_connection():
+            init_db()
+            _db_initialized = True
+        else:
+            logger.error("❌ Database connection failed")
+
+
 # Redis job queue imports
 from redis_queue import get_job_queue, JobQueueStatus
 
@@ -100,13 +113,10 @@ manager = ConnectionManager()
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     logger.info("🚀 GPU Cloud Platform starting up...")
-    
-    # Initialize database
-    if not check_db_connection():
-        logger.error("❌ Database connection failed during startup")
-    else:
-        init_db()
-    
+
+    # Skip database initialization during startup for faster health checks
+    # Database will be initialized on first API call that needs it
+
     yield
     logger.info("Shutting down GPU Cloud Platform...")
 
@@ -139,10 +149,10 @@ app.add_middleware(
 # Root health check endpoint for deployment monitoring (required by Replit)
 @app.get("/")
 @app.head("/")
-async def root_health_check():
+def root_health_check():
     """Root health check endpoint for deployment monitoring"""
-    return {"status": "healthy", "service": "P2P GPU Cloud Platform API"}
-
+    return {"status": "healthy", "service": "P2P GPU Cloud Platform"}
+    
 # Additional health check endpoint
 @app.get("/health-check")
 @app.head("/health-check")
@@ -282,8 +292,9 @@ async def update_active_role(
 @app.head("/api")
 async def api_root():
     """API root endpoint - supports HEAD for proxy health checks"""
+    ensure_db_initialized()
     return {"message": "P2P GPU Cloud Platform API", "version": "1.0.0", "status": "online"}
-
+    
 # Host management routes
 @app.post("/api/hosts/register", response_model=HostResponse)
 async def register_host(
