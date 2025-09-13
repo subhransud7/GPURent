@@ -33,7 +33,7 @@ from google_auth import google_oauth, create_access_token, verify_token, create_
 
 # Schema imports
 from schemas import (
-    UserRegister, GoogleAuthCallback, Token, UserResponse,
+    UserRegister, Token, UserResponse,
     HostRegister, HostUpdate, HostResponse,
     JobSubmit, JobUpdate, JobResponse,
     HostHeartbeat, JobProgress, ErrorResponse, HealthResponse
@@ -180,12 +180,16 @@ async def google_login():
             detail="Failed to initiate Google authentication"
         )
 
-@app.post("/api/auth/google/callback")
-async def google_callback(callback_data: GoogleAuthCallback, db: Session = Depends(get_db)):
+@app.get("/api/auth/google/callback")
+async def google_callback(
+    code: str, 
+    state: Optional[str] = None, 
+    db: Session = Depends(get_db)
+):
     """Handle Google OAuth callback and return JWT token with user data"""
     try:
         # Get user info from Google
-        user_info = google_oauth.get_user_info(callback_data.code)
+        user_info = google_oauth.get_user_info(code)
         
         # Create or update user in database
         user = create_or_update_user(user_info, db)

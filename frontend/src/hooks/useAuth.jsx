@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
 
   const handleGoogleCallback = async (code) => {
     try {
-      const response = await axios.post('/api/auth/google/callback', { code })
+      const response = await axios.get(`/api/auth/google/callback?code=${code}`)
       const { access_token, user } = response.data
       
       // Store token and user info
