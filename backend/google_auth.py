@@ -25,7 +25,7 @@ GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configura
 REPLIT_DOMAIN = os.environ.get("REPLIT_DEV_DOMAIN")
 print(f"REPLIT_DOMAIN: {REPLIT_DOMAIN}")  # Print the value to the console
 if REPLIT_DOMAIN:
-    REDIRECT_URI = f"https://{REPLIT_DOMAIN}/auth/google/callback"
+    REDIRECT_URI = "https://opentensr.replit.app/auth/google/callback"
 else:
     # Development fallback
     REDIRECT_URI = "http://localhost:5000/auth/google/callback"
