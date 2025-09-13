@@ -55,9 +55,22 @@ https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oa
         """Get the Google OAuth authorization URL"""
         import secrets
         import urllib.parse
+        import hmac
+        import hashlib
+        import time
         
-        # Generate a random state for security
-        state = secrets.token_urlsafe(32)
+        # Generate a random nonce and timestamp for security
+        nonce = secrets.token_urlsafe(16)
+        timestamp = str(int(time.time()))
+        
+        # Create state by HMAC signing the nonce and timestamp
+        state_data = f"{nonce}:{timestamp}"
+        state_signature = hmac.new(
+            SECRET_KEY.encode('utf-8'),
+            state_data.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        state = f"{state_data}:{state_signature}"
         
         # Build authorization URL manually
         auth_params = {
@@ -76,6 +89,14 @@ https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oa
     def get_user_info(self, authorization_code: str, state: str = None) -> dict:
         """Exchange authorization code for user information"""
         try:
+            # Verify state parameter to prevent CSRF attacks
+            if not state:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Missing state parameter - potential CSRF attack"
+                )
+            
+            self._verify_oauth_state(state)
             # Exchange authorization code for access token
             token_data = {
                 'client_id': GOOGLE_CLIENT_ID,
@@ -128,6 +149,43 @@ https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oa
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"OAuth authentication failed: {str(e)}"
+            )
+
+    def _verify_oauth_state(self, state: str) -> None:
+        """Verify OAuth state parameter to prevent CSRF attacks"""
+        import hmac
+        import hashlib
+        import time
+        
+        try:
+            # Parse state: nonce:timestamp:signature
+            parts = state.split(':')
+            if len(parts) != 3:
+                raise ValueError("Invalid state format")
+            
+            nonce, timestamp_str, provided_signature = parts
+            
+            # Check timestamp (reject states older than 10 minutes)
+            timestamp = int(timestamp_str)
+            current_time = int(time.time())
+            if current_time - timestamp > 600:  # 10 minutes
+                raise ValueError("State expired")
+            
+            # Verify signature
+            state_data = f"{nonce}:{timestamp_str}"
+            expected_signature = hmac.new(
+                SECRET_KEY.encode('utf-8'),
+                state_data.encode('utf-8'),
+                hashlib.sha256
+            ).hexdigest()
+            
+            if not hmac.compare_digest(provided_signature, expected_signature):
+                raise ValueError("Invalid state signature")
+                
+        except (ValueError, TypeError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid OAuth state - potential CSRF attack: {str(e)}"
             )
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
