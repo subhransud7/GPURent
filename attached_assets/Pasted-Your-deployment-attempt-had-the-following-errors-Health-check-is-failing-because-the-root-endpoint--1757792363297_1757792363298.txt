@@ -1,0 +1,48 @@
+Your deployment attempt had the following errors:
+Health check is failing because the root endpoint '/' is not responding with a 200 status code in a timely manner
+The backend is serving the frontend at '/app' instead of the root '/' endpoint which health checks expect
+The application appears to be running correctly but not accessible at the expected root path for health checks
+Agent suggestions
+@app.get("/")
+@app.head
+
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {"status": "ok", "message": "Service is healthy"}
+@app.get("/")
+@app.head("/")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {"status": "ok", "message": "Service is healthy"}
+# Serve frontend at /app/* to avoid conflicts with root health check
+@app.get("/app")
+@app.get("/app/{path:path}")
+async def serve_frontend(path: str = ""):
+    """Serve frontend index.html for SPA routing at /app/*"""
+    index_path = os.path.join(frontend_dist_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    else:
+        raise HTTPException(status_code=404, detail="Frontend not found")
+# Serve frontend as a catch-all for all non-API routes
+@app.get("/{path:path}")
+async def serve_frontend(path: str = ""):
+    """Serve frontend index.html for SPA routing, but exclude API routes"""
+    # Skip frontend serving for API routes and health check
+    if path.startswith("api/") or path == "" or path.startswith("ws/"):
+        raise HTTPException(status_code=404, detail="Route not found")
+        
+    index_path = os.path.join(frontend_dist_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    else:
+        raise HTTPException(status_code=404, detail="Frontend not found")
+# Root health check endpoint for deployment monitoring (required by Replit)
+@app.get("/")
+@app.head
+# Root health check endpoint for deployment monitoring (required by Replit)
+@app.get("/")
+@app.head("/")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {"status": "ok", "message": "Service is healthy"}

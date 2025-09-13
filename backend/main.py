@@ -150,8 +150,8 @@ app.add_middleware(
 @app.get("/")
 @app.head("/")
 def root_health_check():
-    """Root health check endpoint for deployment monitoring"""
-    return {"status": "healthy", "service": "P2P GPU Cloud Platform"}
+    """Health check endpoint for deployment monitoring"""
+    return {"status": "ok", "message": "Service is healthy"}
     
 # Additional health check endpoint
 @app.get("/health-check")
