@@ -136,6 +136,13 @@ app.add_middleware(
 
 # Static file mounting will be done after all API routes are defined
 
+# Root health check endpoint for deployment health checks
+@app.get("/")
+@app.head("/")
+async def root_health_check():
+    """Simple health check endpoint for deployment monitoring"""
+    return {"status": "healthy", "service": "P2P GPU Cloud Platform API"}
+
 # API info endpoint is defined later with both GET and HEAD support
 
 @app.get("/health", response_model=HealthResponse)
@@ -679,9 +686,9 @@ from fastapi.responses import FileResponse
 
 frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.exists(frontend_dist_path):
-    # Mount entire frontend dist directory at root (after all API routes)
-    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
-    logger.info(f"✅ Mounted frontend static files from {frontend_dist_path}")
+    # Mount entire frontend dist directory at /app/ (after all API routes)
+    app.mount("/app", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+    logger.info(f"✅ Mounted frontend static files from {frontend_dist_path} at /app/")
 else:
     logger.info("ℹ️ Frontend dist directory not found, running in development mode")
 
