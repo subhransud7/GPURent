@@ -290,9 +290,8 @@ async def update_active_role(
 
 @app.get("/api")
 @app.head("/api")
-async def api_root():
+def api_root():
     """API root endpoint - supports HEAD for proxy health checks"""
-    ensure_db_initialized()
     return {"message": "P2P GPU Cloud Platform API", "version": "1.0.0", "status": "online"}
     
 # Host management routes
