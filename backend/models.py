@@ -29,7 +29,7 @@ class User(Base):
     """User accounts - can be hosts, renters, or admins"""
     __tablename__ = "users"
     
-    id = Column(String(255), primary_key=True)  # Google user ID
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Auto-increment ID
     email = Column(String(255), unique=True, nullable=False)
     username = Column(String(100), nullable=False)  # Display name from Google
     first_name = Column(String(100), nullable=True)
