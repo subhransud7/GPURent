@@ -70,7 +70,7 @@ class HostUpdate(BaseModel):
 class HostResponse(BaseModel):
     id: int
     host_id: str
-    owner_id: str
+    owner_id: int
     gpu_model: str
     gpu_memory: str
     gpu_count: int
@@ -114,7 +114,7 @@ class JobUpdate(BaseModel):
 class JobResponse(BaseModel):
     id: int
     job_id: str
-    renter_id: str
+    renter_id: int
     host_id: Optional[int]
     title: str
     description: Optional[str]

@@ -62,7 +62,13 @@ def get_current_user(
 ) -> User:
     """Get current authenticated user from JWT token"""
     payload = verify_token(credentials.credentials)
-    user_id: str = payload.get("sub")  # String ID for Google OAuth compatibility
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token - missing user ID"
+        )
+    user_id: int = int(user_id_str)  # Integer primary key from database
     
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
