@@ -24,33 +24,58 @@ class JobQueueStatus(str, Enum):
 class RedisJobQueue:
     def __init__(self, redis_url: Optional[str] = None):
         """Initialize Redis connection for job queue management"""
-        if redis_url is None:
-            redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+        self.redis_client = None
+        self.redis_url = redis_url or os.environ.get('REDIS_URL') or os.environ.get('REDIS_SERVICE_URL')
+        self.connection_attempted = False
         
-        try:
-            self.redis_client = redis.from_url(redis_url, decode_responses=True)
-            # Test connection
-            self.redis_client.ping()
-            logger.info("✅ Redis connection established successfully")
-        except Exception as e:
-            logger.error(f"❌ Redis connection failed: {e}")
-            # Fall back to local Redis if available
-            try:
-                self.redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-                self.redis_client.ping()
-                logger.info("✅ Connected to local Redis server")
-            except Exception as local_e:
-                logger.error(f"❌ Local Redis connection also failed: {local_e}")
-                self.redis_client = None
-
         # Queue keys
         self.pending_jobs_key = "gpu_jobs:pending"
         self.running_jobs_key = "gpu_jobs:running"
         self.completed_jobs_key = "gpu_jobs:completed"
         self.host_status_key = "gpu_hosts:status"
         
+        # Try to connect, but don't fail startup if Redis is unavailable
+        self._try_connect()
+    
+    def _try_connect(self) -> bool:
+        """Attempt to connect to Redis, but don't block startup if unavailable"""
+        if self.connection_attempted and self.redis_client is not None:
+            return True
+        
+        self.connection_attempted = True
+        
+        # Skip Redis entirely if no URL is configured
+        if not self.redis_url:
+            logger.info("ℹ️ No Redis URL configured, running without Redis queue functionality")
+            return False
+        
+        try:
+            self.redis_client = redis.from_url(self.redis_url, decode_responses=True)
+            # Test connection with a timeout
+            self.redis_client.ping()
+            logger.info("✅ Redis connection established successfully")
+            return True
+        except Exception as e:
+            logger.warning(f"⚠️ Redis connection failed, continuing without queue functionality: {e}")
+            # Try local Redis as fallback only if REDIS_URL was explicitly set
+            if self.redis_url and 'localhost' not in self.redis_url:
+                try:
+                    self.redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+                    self.redis_client.ping()
+                    logger.info("✅ Connected to local Redis server as fallback")
+                    return True
+                except Exception as local_e:
+                    logger.warning(f"⚠️ Local Redis fallback also failed: {local_e}")
+            
+            self.redis_client = None
+            return False
+        
     def is_connected(self) -> bool:
         """Check if Redis is available"""
+        if not self.redis_client:
+            # Try to reconnect once if we haven't attempted recently
+            if not self.connection_attempted:
+                self._try_connect()
         return self.redis_client is not None
 
     def enqueue_job(self, job_data: Dict) -> bool:

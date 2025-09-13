@@ -6,6 +6,7 @@ Based on python_database integration blueprint adapted for FastAPI
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -133,15 +134,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Root endpoint
-@app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {
-        "message": "Welcome to the P2P GPU Cloud Platform",
-        "status": "online",
-        "version": "1.0.0"
-    }
+# Static file mounting will be done after all API routes are defined
+
+# API info endpoint is defined later with both GET and HEAD support
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check(db: Session = Depends(get_db)):
@@ -677,6 +672,18 @@ async def get_platform_stats(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch statistics"
         )
+
+# Mount static files for production (after all API routes)
+import os
+from fastapi.responses import FileResponse
+
+frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+if os.path.exists(frontend_dist_path):
+    # Mount entire frontend dist directory at root (after all API routes)
+    app.mount("/", StaticFiles(directory=frontend_dist_path, html=True), name="frontend")
+    logger.info(f"✅ Mounted frontend static files from {frontend_dist_path}")
+else:
+    logger.info("ℹ️ Frontend dist directory not found, running in development mode")
 
 if __name__ == "__main__":
     uvicorn.run(
