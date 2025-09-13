@@ -39,7 +39,8 @@ export default function Navbar() {
               <img 
                 src={openTensrLogo} 
                 alt="OpenTensr" 
-                className="h-8 w-auto"
+                className="h-16 w-auto max-w-48"
+                style={{ backgroundColor: 'transparent' }}
               />
             </Link>
           </div>
