@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'))
   const [activeRole, setActiveRole] = useState(localStorage.getItem('activeRole') || 'renter')
 
-  // Set up axios defaults
+  // Set up axios defaults immediately when token changes
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -17,6 +17,16 @@ export const AuthProvider = ({ children }) => {
       delete axios.defaults.headers.common['Authorization']
     }
   }, [token])
+
+  // Initialize auth and set axios headers on app startup
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token')
+    if (storedToken && storedToken !== token) {
+      // Set axios header immediately for stored token
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
+      setToken(storedToken)
+    }
+  }, []) // Run once on mount
 
   // Check if user is logged in on mount
   useEffect(() => {
@@ -76,6 +86,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', access_token)
       setToken(access_token)
       setUser(user)
+      
+      // IMMEDIATELY set the authorization header
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       
       return { success: true, user }
     } catch (error) {

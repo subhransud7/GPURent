@@ -28,8 +28,8 @@ export default function DashboardPage() {
       try {
         if (activeRole === 'renter') {
           // Fetch jobs for renters
-          const jobsRes = await axios.get('/api/jobs/my-jobs').catch(() => ({ data: { jobs: [] } }))
-          setJobs(jobsRes.data.jobs || [])
+          const jobsRes = await axios.get('/api/jobs').catch(() => ({ data: [] }))
+          setJobs(jobsRes.data || [])
           setHosts([]) // Clear hosts data
         } else if (activeRole === 'host') {
           // Fetch user's own hosts for host view
