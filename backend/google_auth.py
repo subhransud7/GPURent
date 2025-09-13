@@ -20,13 +20,13 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
-# Configure REDIRECT_URI to point directly to backend API endpoint
+# Get the domain from environment 
 REPLIT_DOMAIN = os.environ.get("REPLIT_DEV_DOMAIN")
 if REPLIT_DOMAIN:
-    REDIRECT_URI = f"https://{REPLIT_DOMAIN}/api/auth/google/callback"
+    REDIRECT_URI = f"https://{REPLIT_DOMAIN}/auth/google/callback"
 else:
-    # Development fallback - point to backend API
-    REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
+    # Development fallback
+    REDIRECT_URI = "http://localhost:5000/auth/google/callback"
 
 # JWT Configuration - Load from environment, fail if missing for production stability
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
