@@ -147,11 +147,10 @@ app.add_middleware(
 
 # Static file mounting will be done after all API routes are defined
 
-# Root health check endpoint for deployment monitoring (required by Replit)
-# This endpoint is completely independent of database and other services
-@app.get("/")
-@app.head("/")
-def root_health_check():
+# Health check endpoint moved to /health for deployment monitoring
+@app.get("/health")
+@app.head("/health")
+def deployment_health_check():
     """Fast health check endpoint for deployment monitoring - no database dependencies"""
     return {"status": "ok", "message": "Service is healthy", "timestamp": datetime.utcnow().isoformat()}
     
@@ -700,14 +699,18 @@ from fastapi.responses import FileResponse
 
 frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.exists(frontend_dist_path):
-    # Mount static assets (CSS, JS, etc.) at /app/assets to match frontend paths
-    app.mount("/app/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+    # Mount static assets (CSS, JS, etc.) at /assets
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
     
-    # Serve frontend at /app/* to avoid conflicts with root health check
-    @app.get("/app")
-    @app.get("/app/{path:path}")
+    # Serve frontend at root for the main user experience
+    @app.get("/")
+    @app.get("/{path:path}")
     async def serve_frontend(path: str = ""):
-        """Serve frontend index.html for SPA routing at /app/*"""
+        """Serve frontend index.html for SPA routing - main app entry point"""
+        # Skip serving frontend for API endpoints
+        if path and (path.startswith("api/") or path.startswith("ws/") or path == "health"):
+            raise HTTPException(status_code=404, detail="Not found")
+            
         index_path = os.path.join(frontend_dist_path, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path)
