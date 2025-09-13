@@ -113,10 +113,11 @@ manager = ConnectionManager()
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     logger.info("🚀 GPU Cloud Platform starting up...")
-
-    # Skip database initialization during startup for faster health checks
-    # Database will be initialized on first API call that needs it
-
+    
+    # Skip all database operations during startup for faster health checks
+    # This ensures deployment health checks succeed quickly
+    logger.info("✅ Startup complete - database will initialize on first use")
+    
     yield
     logger.info("Shutting down GPU Cloud Platform...")
 
@@ -147,25 +148,21 @@ app.add_middleware(
 # Static file mounting will be done after all API routes are defined
 
 # Root health check endpoint for deployment monitoring (required by Replit)
+# This endpoint is completely independent of database and other services
 @app.get("/")
 @app.head("/")
 def root_health_check():
-    """Health check endpoint for deployment monitoring"""
-    return {"status": "ok", "message": "Service is healthy"}
+    """Fast health check endpoint for deployment monitoring - no database dependencies"""
+    return {"status": "ok", "message": "Service is healthy", "timestamp": datetime.utcnow().isoformat()}
     
 
 # API info endpoint is defined later with both GET and HEAD support
 
 @app.get("/health", response_model=HealthResponse)
-async def health_check(db: Session = Depends(get_db)):
-    """Detailed health check"""
-    try:
-        # Test database connection
-        from sqlalchemy import text
-        db.execute(text("SELECT 1"))
-        db_status = "online"
-    except Exception:
-        db_status = "offline"
+async def health_check():
+    """Detailed health check with database status"""
+    # Test database connection safely without blocking
+    db_status = "online" if check_db_connection() else "offline"
     
     return HealthResponse(
         status="healthy" if db_status == "online" else "degraded",
@@ -523,9 +520,10 @@ async def list_jobs(
 @app.websocket("/ws/host/{host_id}")
 async def websocket_host_endpoint(websocket: WebSocket, host_id: str):
     """WebSocket endpoint for GPU host agents"""
-    db = next(get_db())
+    db = None
     
     try:
+        db = next(get_db())
         # Authenticate WebSocket connection
         # Extract token from query parameters or headers
         token = websocket.query_params.get("token")
@@ -581,23 +579,27 @@ async def websocket_host_endpoint(websocket: WebSocket, host_id: str):
                 }))
                 
     except WebSocketDisconnect:
-        await manager.disconnect_host(host_id, db)
+        if db:
+            await manager.disconnect_host(host_id, db)
     except HTTPException as e:
         logger.error(f"WebSocket auth error for host {host_id}: {e.detail}")
         await websocket.close(code=1008, reason=e.detail)
     except Exception as e:
         logger.error(f"Error in WebSocket connection for host {host_id}: {e}")
-        await manager.disconnect_host(host_id, db)
+        if db:
+            await manager.disconnect_host(host_id, db)
     finally:
-        db.close()
+        if db:
+            db.close()
 
 # WebSocket endpoint for renter job monitoring
 @app.websocket("/ws/job/{job_id}")
 async def websocket_job_endpoint(websocket: WebSocket, job_id: str):
     """WebSocket endpoint for job log streaming"""
-    db = next(get_db())
+    db = None
     
     try:
+        db = next(get_db())
         # Authenticate WebSocket connection
         token = websocket.query_params.get("token")
         if not token:
@@ -661,7 +663,8 @@ async def websocket_job_endpoint(websocket: WebSocket, job_id: str):
     except Exception as e:
         logger.error(f"Error in WebSocket connection for job {job_id}: {e}")
     finally:
-        db.close()
+        if db:
+            db.close()
 
 # Admin routes
 @app.get("/api/admin/stats")
