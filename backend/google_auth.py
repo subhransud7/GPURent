@@ -171,7 +171,7 @@ def create_or_update_user(user_info: dict, db: Session, role: UserRole = UserRol
         )
     
     # Check if user already exists
-    user = db.query(User).filter(User.id == google_id).first()
+    user = db.query(User).filter(User.google_id == google_id).first()
     
     if user:
         # Update existing user info
@@ -184,7 +184,7 @@ def create_or_update_user(user_info: dict, db: Session, role: UserRole = UserRol
     else:
         # Create new user
         user = User(
-            id=google_id,
+            google_id=google_id,
             email=email,
             username=user_info.get("name", email.split("@")[0]),
             first_name=user_info.get("given_name"),

@@ -35,6 +35,7 @@ class User(Base):
     first_name = Column(String(100), nullable=True)
     last_name = Column(String(100), nullable=True)
     profile_image_url = Column(String(500), nullable=True)
+    google_id = Column(String(255), unique=True, nullable=True)  # Google user ID
     oauth_provider = Column(String(50), nullable=False, default="google")  # google, github, etc
     role = Column(Enum(UserRole), nullable=False, default=UserRole.RENTER)
     stripe_customer_id = Column(String(255), nullable=True)  # For payments
@@ -54,7 +55,7 @@ class Host(Base):
     
     id = Column(Integer, primary_key=True)
     host_id = Column(String(100), unique=True, nullable=False)  # Unique device ID
-    owner_id = Column(String(255), ForeignKey("users.id"), nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # GPU specifications
     gpu_model = Column(String(100), nullable=False)  # RTX 4090, A100, etc
