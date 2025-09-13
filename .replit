@@ -37,5 +37,5 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "vm"
-run = ["bash", "-c", "cd backend && python main.py"]
+run = ["bash", "-c", "cd backend && uvicorn main:app --host 0.0.0.0 --port 5000 --no-reload --log-level info"]
 build = ["bash", "-c", "cd frontend && npm run build"]
