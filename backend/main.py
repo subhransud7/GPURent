@@ -723,10 +723,14 @@ else:
     logger.info("ℹ️ Frontend dist directory not found, running in development mode")
 
 if __name__ == "__main__":
+    # Use environment variables to determine production vs development settings
+    is_development = os.getenv("ENVIRONMENT", "development").lower() == "development"
+    reload_enabled = os.getenv("UVICORN_RELOAD", "true" if is_development else "false").lower() == "true"
+    
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=5000,
-        reload=True,
+        reload=reload_enabled,
         log_level="info"
     )
