@@ -4,9 +4,9 @@ Based on Replit Auth integration principles adapted for FastAPI
 """
 
 import os
+import requests
 from jose import jwt
 from datetime import datetime, timedelta
-from authlib.integrations.requests_client import OAuth2Session
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models import User, UserRole
@@ -50,46 +50,80 @@ To enable Google authentication:
 For detailed instructions, see:
 https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oauth-app--client
             """.format(redirect_uri=REDIRECT_URI))
-        
-        self.client = OAuth2Session(
-            client_id=GOOGLE_CLIENT_ID,
-            client_secret=GOOGLE_CLIENT_SECRET,
-            scope="openid email profile",
-            redirect_uri=REDIRECT_URI
-        )
     
     def get_authorization_url(self) -> str:
         """Get the Google OAuth authorization URL"""
-        authorization_url, state = self.client.create_authorization_url(
-            "https://accounts.google.com/o/oauth2/auth",
-            access_type="offline",
-            prompt="select_account"
-        )
-        return authorization_url
+        import secrets
+        import urllib.parse
+        
+        # Generate a random state for security
+        state = secrets.token_urlsafe(32)
+        
+        # Build authorization URL manually
+        auth_params = {
+            'client_id': GOOGLE_CLIENT_ID,
+            'redirect_uri': REDIRECT_URI,
+            'scope': 'openid email profile',
+            'response_type': 'code',
+            'state': state,
+            'access_type': 'offline',
+            'prompt': 'select_account'
+        }
+        
+        auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(auth_params)
+        return auth_url
     
-    def get_user_info(self, authorization_code: str) -> dict:
+    def get_user_info(self, authorization_code: str, state: str = None) -> dict:
         """Exchange authorization code for user information"""
         try:
             # Exchange authorization code for access token
-            token = self.client.fetch_token(
-                "https://oauth2.googleapis.com/token",
-                authorization_response=f"{REDIRECT_URI}?code={authorization_code}"
+            token_data = {
+                'client_id': GOOGLE_CLIENT_ID,
+                'client_secret': GOOGLE_CLIENT_SECRET,
+                'code': authorization_code,
+                'grant_type': 'authorization_code',
+                'redirect_uri': REDIRECT_URI
+            }
+            
+            # Make token exchange request
+            token_response = requests.post(
+                'https://oauth2.googleapis.com/token',
+                data=token_data,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
             )
+            
+            if token_response.status_code != 200:
+                error_detail = token_response.text
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Token exchange failed: {error_detail}"
+                )
+            
+            token_json = token_response.json()
+            access_token = token_json.get('access_token')
+            
+            if not access_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No access token received from Google"
+                )
             
             # Get user info from Google
-            response = self.client.get(
-                "https://www.googleapis.com/oauth2/v2/userinfo",
-                token=token
+            user_response = requests.get(
+                'https://www.googleapis.com/oauth2/v2/userinfo',
+                headers={'Authorization': f'Bearer {access_token}'}
             )
             
-            if response.status_code != 200:
+            if user_response.status_code != 200:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Failed to fetch user information from Google"
                 )
             
-            return response.json()
+            return user_response.json()
             
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -189,7 +189,7 @@ async def google_callback(
     """Handle Google OAuth callback and return JWT token with user data"""
     try:
         # Get user info from Google
-        user_info = google_oauth.get_user_info(code)
+        user_info = google_oauth.get_user_info(code, state)
         
         # Create or update user in database
         user = create_or_update_user(user_info, db)
