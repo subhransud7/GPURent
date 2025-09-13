@@ -102,7 +102,7 @@ class Job(Base):
     
     id = Column(Integer, primary_key=True)
     job_id = Column(String(100), unique=True, nullable=False)
-    renter_id = Column(String(255), ForeignKey("users.id"), nullable=False)
+    renter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     host_id = Column(Integer, ForeignKey("hosts.id"), nullable=True)
     
     # Job specification
@@ -150,7 +150,7 @@ class PublicModel(Base):
     
     id = Column(Integer, primary_key=True)
     model_id = Column(String(100), unique=True, nullable=False)
-    author_id = Column(String(255), ForeignKey("users.id"), nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     job_id = Column(Integer, ForeignKey("jobs.id"), nullable=True)  # Source job
     
     # Model metadata

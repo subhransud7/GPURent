@@ -87,7 +87,7 @@ https://docs.replit.com/additional-resources/google-auth-in-flask#set-up-your-oa
         auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(auth_params)
         return auth_url
     
-    def get_user_info(self, authorization_code: str, state: str = None) -> dict:
+    def get_user_info(self, authorization_code: str, state: str) -> dict:
         """Exchange authorization code for user information"""
         try:
             # Verify state parameter to prevent CSRF attacks

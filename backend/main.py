@@ -136,11 +136,18 @@ app.add_middleware(
 
 # Static file mounting will be done after all API routes are defined
 
-# Health check endpoint moved to /health-check to free up root for frontend
+# Root health check endpoint for deployment monitoring (required by Replit)
+@app.get("/")
+@app.head("/")
+async def root_health_check():
+    """Root health check endpoint for deployment monitoring"""
+    return {"status": "healthy", "service": "P2P GPU Cloud Platform API"}
+
+# Additional health check endpoint
 @app.get("/health-check")
 @app.head("/health-check")
 async def deployment_health_check():
-    """Simple health check endpoint for deployment monitoring"""
+    """Alternative health check endpoint"""
     return {"status": "healthy", "service": "P2P GPU Cloud Platform API"}
 
 # API info endpoint is defined later with both GET and HEAD support
@@ -191,7 +198,7 @@ async def google_callback(
     """Handle Google OAuth callback and return JWT token with user data"""
     try:
         # Get user info from Google
-        user_info = google_oauth.get_user_info(code, state)
+        user_info = google_oauth.get_user_info(code, state or "")
         
         # Create or update user in database
         user = create_or_update_user(user_info, db)
@@ -689,14 +696,11 @@ if os.path.exists(frontend_dist_path):
     # Mount static assets (CSS, JS, etc.) at root
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
     
-    # Catch-all route to serve index.html for SPA routing (must be last)
-    @app.get("/{path:path}")
+    # Serve frontend at /app/* to avoid conflicts with root health check
+    @app.get("/app")
+    @app.get("/app/{path:path}")
     async def serve_frontend(path: str = ""):
-        """Serve frontend index.html for all non-API routes"""
-        # Don't intercept API routes
-        if path.startswith("api/") or path.startswith("ws/") or path == "health-check" or path == "health":
-            raise HTTPException(status_code=404, detail="Not found")
-        
+        """Serve frontend index.html for SPA routing at /app/*"""
         index_path = os.path.join(frontend_dist_path, "index.html")
         if os.path.exists(index_path):
             return FileResponse(index_path)
