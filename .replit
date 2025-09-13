@@ -27,13 +27,13 @@ args = "Frontend"
 name = "Backend API"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && python main.py"
-waitForPort = 8000
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && set -a && source .env && set +a && python main.py"
+waitForPort = 8000
 
 [[workflows.workflow]]
 name = "Frontend"

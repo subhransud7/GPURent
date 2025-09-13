@@ -10,27 +10,28 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from models import User, UserRole
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
-# Get the domain from environment 
+# Configure REDIRECT_URI to point directly to backend API endpoint
 REPLIT_DOMAIN = os.environ.get("REPLIT_DEV_DOMAIN")
 if REPLIT_DOMAIN:
-    REDIRECT_URI = f"https://{REPLIT_DOMAIN}/auth/google/callback"
+    REDIRECT_URI = f"https://{REPLIT_DOMAIN}/api/auth/google/callback"
 else:
-    # Development fallback
-    REDIRECT_URI = "http://localhost:5000/auth/google/callback"
+    # Development fallback - point to backend API
+    REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
 
-# JWT Configuration
+# JWT Configuration - Load from environment, fail if missing for production stability
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 if not SECRET_KEY:
-    # Development fallback - generate a random key
-    import secrets
-    SECRET_KEY = secrets.token_urlsafe(32)
-    print("⚠️  Using generated JWT secret for development. Set JWT_SECRET_KEY environment variable for production.")
+    raise RuntimeError("JWT_SECRET_KEY environment variable is required for secure operation. Check your .env file.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

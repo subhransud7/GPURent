@@ -124,7 +124,10 @@ def authenticate_websocket_token(token: str, db: Session) -> User:
     """Authenticate a WebSocket connection using JWT token"""
     try:
         payload = verify_token(token)
-        user_id: str = payload.get("sub")
+        user_id_str = payload.get("sub")
+        
+        # Convert string user ID from JWT to integer for database lookup
+        user_id = int(user_id_str)
         
         user = db.query(User).filter(User.id == user_id).first()
         if user is None or not user.is_active:
@@ -133,5 +136,7 @@ def authenticate_websocket_token(token: str, db: Session) -> User:
         return user
     except HTTPException:
         raise
+    except (ValueError, TypeError) as e:
+        raise HTTPException(status_code=401, detail="Invalid user ID format")
     except Exception as e:
         raise HTTPException(status_code=401, detail="Token authentication failed")
