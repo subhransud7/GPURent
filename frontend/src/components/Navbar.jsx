@@ -39,7 +39,7 @@ export default function Navbar() {
               <img 
                 src={openTensrLogo} 
                 alt="OpenTensr" 
-                className="h-10 w-auto max-w-64"
+                className="h-auto w-auto max-w-64"
                 style={{ backgroundColor: 'transparent' }}
               />
             </Link>
@@ -52,7 +52,7 @@ export default function Navbar() {
                 to="/marketplace"
                 className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition duration-150"
               >
-                GPU Marketplace
+                P2P GPU Markethub
               </Link>
 
               {isAuthenticated && (
