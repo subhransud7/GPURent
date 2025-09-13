@@ -700,8 +700,8 @@ from fastapi.responses import FileResponse
 
 frontend_dist_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
 if os.path.exists(frontend_dist_path):
-    # Mount static assets (CSS, JS, etc.) at root
-    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+    # Mount static assets (CSS, JS, etc.) at /app/assets to match frontend paths
+    app.mount("/app/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
     
     # Serve frontend at /app/* to avoid conflicts with root health check
     @app.get("/app")
